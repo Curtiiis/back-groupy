@@ -1,8 +1,8 @@
 const db = require('../config/db');
 
 const Picture = function (post) {
-  this.profilePicture = post.profilePicture
-  this.userId = post.userId
+  this.profilePicture = post.profilePicture;
+  this.userId = post.userId;
 }
 
 Picture.update = (data, result) => {

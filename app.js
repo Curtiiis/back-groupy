@@ -1,13 +1,12 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-require('dotenv').config();
-const cors = require('./config/cors')
-const path = require('path');
-const authRoute = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const postsRoutes = require('./routes/post.routes');
-const commentRoute = require('./routes/comment.routes');
-// const User = require('./firebase')
+require("dotenv").config();
+const cors = require("./config/cors");
+const path = require("path");
+const authRoute = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+const postsRoutes = require("./routes/post.routes");
+const commentRoute = require("./routes/comment.routes");
 
 //CORS
 app.use(cors);
@@ -16,20 +15,18 @@ app.use(cors);
 app.use(express.json());
 
 //Initialisation des Routes
-app.use('/api/auth', authRoute);
-app.use('/api/user', userRoutes);
-app.use('/api/posts', postsRoutes);
-app.use('/api/comment', commentRoute);
+app.use("/api/auth", authRoute);
+app.use("/api/user", userRoutes);
+app.use("/api/posts", postsRoutes);
+app.use("/api/comment", commentRoute);
 
-app.use('/images', express.static(path.join(__dirname, 'images')));
+// app.get(/.*/, function (req, res) {
+//   res.sendFile(path.join(__dirname, '/dist/index.html'))
+// })
 
-app.post('/create', async (req, res) => {
-  const data = req.body;
-  console.log('Data of users ', data);
-  res.send({ msg: "User Added" })
-})
+app.use("/images", express.static(path.join(__dirname, "images")));
 
-app.listen(process.env.PORT || 3000, (err) => {
+app.listen(process.env.PORT, (err) => {
   if (err) throw err;
   console.log("Server listening on port " + process.env.PORT);
 });
