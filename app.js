@@ -1,34 +1,31 @@
 const express = require("express");
 const app = express();
-require("dotenv").config();
-const cors = require("./config/cors");
-const path = require("path");
-const authRoute = require("./routes/auth.routes");
-const userRoutes = require("./routes/user.routes");
-const postsRoutes = require("./routes/post.routes");
-const commentRoute = require("./routes/comment.routes");
+const mysql = require("mysql");
 
-//CORS
-app.use(cors);
+const port = process.env.PORT || 3000;
 
-//Bodyparser
-app.use(express.json());
-
-//Initialisation des Routes
-app.use("/api/auth", authRoute);
-app.use("/api/user", userRoutes);
-app.use("/api/posts", postsRoutes);
-app.use("/api/comment", commentRoute);
-
-// app.get(/.*/, function (req, res) {
-//   res.sendFile(path.join(__dirname, '/dist/index.html'))
-// })
-
-app.use("/images", express.static(path.join(__dirname, "images")));
-
-app.listen(process.env.PORT, (err) => {
-  if (err) throw err;
-  console.log("Server listening on port " + process.env.PORT);
+// Connection Details
+const connection = mysql.createConnection({
+  host: "eu-cdbr-west-03.cleardb.net",
+  user: "b4c110b57334ed",
+  password: "53e49e8d",
+  database: "heroku_159d15e2b75e127",
 });
 
-module.exports = app;
+// View engine
+app.set("view engine", "ejs");
+
+// Render Home Page
+app.get("/", function (req, res) {
+  connection.query('SELECT * FROM user WHERE id = "1"', (error, rows) => {
+    if (error) throw error;
+
+    if (!error) {
+      console.log(rows);
+      res.render("pages/index", { rows });
+    }
+  });
+});
+
+app.listen(port);
+console.log(`Server is listening on port ${port}`);
