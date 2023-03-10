@@ -17,7 +17,10 @@ app.set("view engine", "ejs");
 
 // Render Home Page
 app.get("/", function (req, res) {
-  res.send("Hello world!!!");
+  connection.query('SELECT * FROM user WHERE id = "1"', (error, rows) => {
+    if (error) console.log(error);
+    res.send(rows);
+  });
 });
 
 app.listen(port);
