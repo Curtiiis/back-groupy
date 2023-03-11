@@ -1,30 +1,41 @@
 const express = require("express");
 const app = express();
 require("dotenv").config();
-const cors = require("./config/cors");
-// const db = require("./config/db");
+const cors = require("cors");
+// const cors = require("./config/cors");
+const path = require("path");
 const authRoute = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+const postsRoutes = require("./routes/post.routes");
+const commentRoute = require("./routes/comment.routes");
 
-const port = process.env.PORT || 3000;
+//CORS
+app.use(
+  cors({
+    origin: "*",
+    // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 
-app.use(cors);
+//Bodyparser
 app.use(express.json());
 
 //Initialisation des Routes
 app.use("/api/auth", authRoute);
+app.use("/api/user", userRoutes);
+app.use("/api/posts", postsRoutes);
+app.use("/api/comment", commentRoute);
 
-// Render Home Page
-app.get("/", function (req, res) {
-  res.send("Welcome to app");
-  // db.query("SELECT * FROM users WHERE isActive = 1", (error, rows) => {
-  //   if (error) console.log(error);
-  //   res.send(rows);
-  // });
-});
+// app.get(/.*/, function (req, res) {
+//   res.sendFile(path.join(__dirname, '/dist/index.html'))
+// })
 
+app.use("/images", express.static(path.join(__dirname, "images")));
+
+const port = process.env.PORT || 3000;
 app.listen(port, (err) => {
   if (err) throw err;
-  console.log(`Server is listening on port ${port}`);
+  console.log("Server listening on port " + port);
 });
 
 module.exports = app;
