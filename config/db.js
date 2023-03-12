@@ -1,10 +1,11 @@
+require("dotenv").config();
 const mysql = require("mysql");
 
 const db = mysql.createConnection({
-  host: "eu-cdbr-west-03.cleardb.net",
-  user: "b329cb1dabd306",
-  password: "b2400f9c",
-  database: "heroku_4e35ae0f1613967",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
 });
 db.connect((err) => {
   if (err) throw err;

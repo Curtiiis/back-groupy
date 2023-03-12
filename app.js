@@ -13,7 +13,6 @@ const commentRoute = require("./routes/comment.routes");
 app.use(
   cors({
     origin: "*",
-    // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
@@ -25,10 +24,6 @@ app.use("/api/auth", authRoute);
 app.use("/api/user", userRoutes);
 app.use("/api/posts", postsRoutes);
 app.use("/api/comment", commentRoute);
-
-// app.get(/.*/, function (req, res) {
-//   res.sendFile(path.join(__dirname, '/dist/index.html'))
-// })
 
 app.use("/images", express.static(path.join(__dirname, "images")));
 
