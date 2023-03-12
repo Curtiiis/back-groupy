@@ -41,7 +41,6 @@ exports.createPost = (req, res, next) => {
 exports.getAllPosts = (req, res, next) => {
   Post.getLastByFive(Number([req.params.number]), (err, dataArray) => {
     const userIdAuth = req.auth.userId;
-    console.log(userIdAuth);
     if (err) throw err;
     Like.getAllLikes((err, dataLikes) => {
       if (err) throw err;
@@ -56,6 +55,8 @@ exports.getAllPosts = (req, res, next) => {
               item.notMyself = item.userId != userIdAuth;
               item.link = item.pseudo.toLowerCase().replace(" ", "-");
               item.updated = Number(item.createdAt) !== Number(item.updatedAt);
+
+              // LIKES
               item.likes = dataLikes
                 .filter((x) => x.postId == item.postId)
                 .map((y) => y.userId).length;
@@ -63,6 +64,8 @@ exports.getAllPosts = (req, res, next) => {
                 .filter((x) => x.postId == item.postId)
                 .map((y) => y.userId)
                 .includes(userIdAuth);
+
+              // SAVES
               item.saves = dataSaves
                 .filter((x) => x.postId == item.postId)
                 .map((y) => y.userId).length;
@@ -70,6 +73,8 @@ exports.getAllPosts = (req, res, next) => {
                 .filter((x) => x.postId == item.postId)
                 .map((y) => y.userId)
                 .includes(userIdAuth);
+
+              // FOLLOWS
               item.follows = dataFollows
                 .filter((x) => x.followId == item.userId)
                 .map((y) => y.userId);
@@ -77,6 +82,7 @@ exports.getAllPosts = (req, res, next) => {
                 .filter((x) => x.followId == item.userId)
                 .map((y) => y.userId)
                 .includes(userIdAuth);
+
               let commentsArray = dataComments.filter((x) => x.postId == item.postId);
               item.comments = commentsArray;
               item.commentsCount = commentsArray.length;
@@ -86,7 +92,6 @@ exports.getAllPosts = (req, res, next) => {
                 comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
               }
             }
-            console.log(dataArray);
             res.status(200).json(dataArray);
           });
         });
@@ -262,14 +267,18 @@ exports.deleteReport = (req, res, next) => {
 
 //LIKES
 exports.likePost = (req, res, next) => {
-  const likeInfo = new Like({
-    userId: req.auth.userId,
-    postId: req.params.id,
-  });
-  let values = [req.params.id, req.auth.userId];
+  const userId = req.auth.userId;
+  const postId = req.params.id;
+
+  const likeInfo = new Like({ userId, postId });
+
+  let values = [postId, userId];
+
   Like.getByPostIdAndUserId(values, (err, data) => {
     if (err) throw err;
+
     let hasBeenLiked = Object.keys(data).length > 0;
+
     if (hasBeenLiked) {
       Like.delete(values, (err, data) => {
         err
