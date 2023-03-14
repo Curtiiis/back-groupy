@@ -1,57 +1,47 @@
-const db = require('../config/db');
+const executeQuery = require("../utils/functions.js");
 
 const Comment = function (post) {
   this.userId = post.userId;
   this.postId = post.postId;
   this.text = post.text;
-}
-
-Comment.create = (data, result) => {
-  db.query("INSERT INTO `comments` SET ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, data)
-  })
 };
 
-Comment.getAllComments = (result) => {
-  db.query("SELECT * FROM `comments_pseudo` ORDER BY createdAt DESC", (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
+const CommentMethods = {
+  create: (data, result) => {
+    const query = "INSERT INTO comments SET ?";
+    executeQuery(query, data, result);
+  },
+  getAllComments: (result) => {
+    const query = "SELECT * FROM `comments_pseudo` ORDER BY createdAt DESC";
+    executeQuery(query, [], result);
+  },
+  getByPostId: (data, result) => {
+    const query =
+      "SELECT * FROM `comments_pseudo` WHERE postId = ? ORDER BY createdAt DESC";
+    executeQuery(query, data, result);
+  },
+  getByIdAndUserId: (data, result) => {
+    const query =
+      "SELECT userId FROM `comments` WHERE `comments`.`id` = ? AND `comments`.`userId` = ?";
+    executeQuery(query, data, result);
+  },
+  getCount: (data, result) => {
+    const query = "SELECT COUNT(id) AS comments FROM comments";
+    executeQuery(query, data, result);
+  },
+  getCountFromUser: (data, result) => {
+    const query =
+      "SELECT COUNT(id) AS postsCount FROM `posts` WHERE userId = ?";
+    executeQuery(query, data, result);
+  },
+  modify: (data, result) => {
+    const query = "UPDATE `comments` SET text = ? WHERE `comments`.`id` = ?";
+    executeQuery(query, data, result);
+  },
+  delete: (data, result) => {
+    const query = "DELETE FROM `comments` WHERE `comments`.`id` = ?";
+    executeQuery(query, data, result);
+  },
 };
 
-Comment.getByPostId = (data, result) => {
-  db.query("SELECT * FROM `comments_pseudo` WHERE postId = ? ORDER BY createdAt DESC", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Comment.getByIdAndUserId = (data, result) => {
-  db.query("SELECT userId FROM `comments` WHERE `comments`.`id` = ? AND `comments`.`userId` = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Comment.getCount = (data, result) => {
-  db.query("SELECT COUNT(id) AS comments FROM comments", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Comment.getCountFromUser = (data, result) => {
-  db.query("SELECT COUNT(id) AS postsCount FROM `posts` WHERE userId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Comment.modify = (data, result) => {
-  db.query("UPDATE `comments` SET text = ? WHERE `comments`.`id` = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Comment.delete = (data, result) => {
-  db.query("DELETE FROM `comments` WHERE `comments`.`id` = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-module.exports = Comment;
+module.exports = { Comment, CommentMethods };

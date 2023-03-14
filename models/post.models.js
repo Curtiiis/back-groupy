@@ -1,16 +1,10 @@
-const db = require("../config/db");
+const executeQuery = require("../utils/functions.js");
 
 const Post = function (post) {
   this.title = post.title;
   this.text = post.text;
   this.media = post.media;
   this.userId = post.userId;
-};
-
-const executeQuery = (query, data, result) => {
-  db.query(query, data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
 };
 
 const PostMethods = {
