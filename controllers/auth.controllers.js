@@ -1,5 +1,5 @@
 require("dotenv").config();
-const User = require("../models/user.models");
+const { User, UserMethods } = require("../models/user.models");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
@@ -7,17 +7,16 @@ exports.signup = (req, res, next) => {
   User.isUnique([req.body.pseudo, req.body.email], (err, response) => {
     if (err) throw err;
     if (response == false) {
-      return res.status(401).json({ message: "Non unique pseudo or email" });
+      return res
+        .status(401)
+        .json({ message: "Pseudo or email already registered !" });
     }
     bcrypt
       .hash(req.body.password, 5)
       .then((hash) => {
-        const user = new User({
-          email: req.body.email,
-          pseudo: req.body.pseudo,
-          password: hash,
-        });
-        User.create(user, (err) => {
+        const { email, pseudo } = req.body;
+        const user = new User({ email, pseudo, password: hash });
+        UserMethods.create(user, (err) => {
           if (err) throw err;
           res.status(201).json({ message: "Created with success" });
         });
@@ -37,7 +36,9 @@ exports.login = (req, res, next) => {
       .then((valid) => {
         if (err) throw err;
         if (!valid) {
-          return res.status(400).json({ message: "Unavailable pseudo or email" });
+          return res
+            .status(400)
+            .json({ message: "Unavailable pseudo or email" });
         }
         res.status(200).json({
           isActive: userFound.isActive,
