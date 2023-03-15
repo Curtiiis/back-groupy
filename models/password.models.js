@@ -1,18 +1,13 @@
-const db = require('../config/db');
+const queryDB = require("../utils/functions");
 
-const Password = function (user) {
-  this.password = user.password;
+class Password {
+  constructor(user) {
+    this.password = user.password;
+  }
+
+  static update(newPassword, result) {
+    queryDB("UPDATE `users` SET `password` = ? WHERE `users`.`id` = ?", newPassword, result);
+  }
 }
 
-Password.update = (newPassword, result) => {
-  db.query("UPDATE `users` SET `password` = ? WHERE `users`.`id` = ?", newPassword, (err, res) => {
-    if (err) {
-      result(err, null);
-      return;
-    }
-    result(null, { newPassword })
-  });
-};
-
 module.exports = Password;
-

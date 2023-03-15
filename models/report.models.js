@@ -1,32 +1,26 @@
-const db = require('../config/db');
+const queryDB = require("../utils/functions");
 
-const Report = function (post) {
-  this.postId = post.postId;
-  this.userId = post.userId;
+class Report {
+  constructor(post) {
+    this.postId = post.postId;
+    this.userId = post.userId;
+  }
+
+  static create(data, result) {
+    queryDB("INSERT INTO `reports` SET ?", data, result);
+  }
+
+  static getAll(result) {
+    queryDB("SELECT * FROM `posts_reports` ORDER BY createdAt DESC", [], result);
+  }
+
+  static getByPostIdAndUserId(data, result) {
+    queryDB("SELECT userId FROM `reports` WHERE postId = ? AND userId = ?", data, result);
+  }
+
+  static delete(data, result) {
+    queryDB("DELETE FROM `reports` WHERE postId = ?", data, result);
+  }
 }
-
-Report.create = (data, result) => {
-  db.query("INSERT INTO `reports` SET ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  });
-};
-
-Report.getAll = (result) => {
-  db.query("SELECT * FROM `posts_reports` ORDER BY createdAt DESC", (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Report.getByPostIdAndUserId = (data, result) => {
-  db.query("SELECT userId FROM `reports` WHERE postId = ? AND userId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  });
-};
-
-Report.delete = (data, result) => {
-  db.query("DELETE FROM `reports` WHERE postId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
 
 module.exports = Report;

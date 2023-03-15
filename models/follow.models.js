@@ -1,46 +1,34 @@
-const db = require('../config/db');
+const queryDB = require("../utils/functions.js");
 
-const Follow = function (post) {
-  this.userId = post.userId;
-  this.followId = post.followId;
+class Follow {
+  constructor(post) {
+    this.userId = post.userId;
+    this.followId = post.followId;
+  }
+
+  static create(newFollow, result) {
+    queryDB("INSERT INTO follows SET ?", newFollow, result);
+  }
+
+  static isFollowed(data, result) {
+    queryDB("SELECT userId FROM `follows` WHERE userId = ? AND followId = ?", data, result);
+  }
+
+  static getAllFollows(result) {
+    queryDB("SELECT userId, followId FROM `follows`", null, result);
+  }
+
+  static getFollowsFromUser(data, result) {
+    queryDB("SELECT userId, followId FROM `follows` WHERE followId = ?", data, result);
+  }
+
+  static getWholeFollowersFromUser(data, result) {
+    queryDB("SELECT userId, picture, pseudo FROM `users_follows` WHERE followId = ?", data, result);
+  }
+
+  static delete(data, result) {
+    queryDB("DELETE FROM `follows` WHERE userId = ? AND followId = ?", data, result);
+  }
 }
-
-Follow.create = (newFollow, result) => {
-  db.query("INSERT INTO follows SET ?", newFollow, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  });
-};
-
-Follow.isFollowed = (data, result) => {
-  db.query("SELECT userId FROM `follows` WHERE userId = ? AND followId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Follow.getAllFollows = (result) => {
-  db.query("SELECT userId, followId FROM `follows`", (err, res) => {
-    if (err) { return result(err, null) };
-    if (res.length === 0) { return result(null, null) };
-    return result(null, res)
-  })
-};
-
-Follow.getFollowsFromUser = (data, result) => {
-  db.query("SELECT userId, followId FROM `follows` WHERE followId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Follow.getWholeFollowersFromUser = (data, result) => {
-  db.query("SELECT userId,picture,pseudo FROM `users_follows` WHERE followId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
-
-Follow.delete = (data, result) => {
-  db.query("DELETE FROM `follows` WHERE userId = ? AND followId = ?", data, (err, res) => {
-    (err) ? result(err, null) : result(null, res)
-  })
-};
 
 module.exports = Follow;

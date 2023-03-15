@@ -1,60 +1,46 @@
-const db = require("../config/db");
+const queryDB = require("../utils/functions");
 
-const Like = function (post) {
-  this.userId = post.userId;
-  this.postId = post.postId;
-};
+class Like {
+  constructor(post) {
+    this.userId = post.userId;
+    this.postId = post.postId;
+  }
 
-Like.create = (data, result) => {
-  db.query("INSERT INTO likes SET ?", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static create(data, result) {
+    queryDB("INSERT INTO likes SET ?", data, result);
+  }
 
-Like.getAllLikes = (result) => {
-  db.query("SELECT postId,userId FROM `likes`", (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static getAllLikes(result) {
+    queryDB("SELECT postId, userId FROM `likes`", null, result);
+  }
 
-Like.getFromUser = (data, result) => {
-  db.query("SELECT userId FROM `users_likes` WHERE postOwner = ?", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static getFromUser(data, result) {
+    queryDB("SELECT userId FROM `users_likes` WHERE postOwner = ?", data, result);
+  }
 
-Like.getOneByPostId = (data, result) => {
-  db.query("SELECT userId FROM `likes` WHERE postId = ?", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static getOneByPostId(data, result) {
+    queryDB("SELECT userId FROM `likes` WHERE postId = ?", data, result);
+  }
 
-Like.getByPostIdAndUserId = (data, result) => {
-  db.query("SELECT userId FROM `likes` WHERE postId = ? AND userId = ?", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static getByPostIdAndUserId(data, result) {
+    queryDB("SELECT userId FROM `likes` WHERE postId = ? AND userId = ?", data, result);
+  }
 
-Like.getCount = (data, result) => {
-  db.query("SELECT COUNT(id) AS likes FROM likes", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static getCount(data, result) {
+    queryDB("SELECT COUNT(id) AS likes FROM likes", data, result);
+  }
 
-Like.getCountFromUser = (data, result) => {
-  db.query(
-    "SELECT COUNT(userId) AS likesCount FROM `users_likes` WHERE postOwner = ?",
-    data,
-    (err, res) => {
-      err ? result(err, null) : result(null, res);
-    }
-  );
-};
+  static getCountFromUser(data, result) {
+    queryDB(
+      "SELECT COUNT(userId) AS likesCount FROM `users_likes` WHERE postOwner = ?",
+      data,
+      result
+    );
+  }
 
-Like.delete = (data, result) => {
-  db.query("DELETE FROM `likes` WHERE postId = ? AND userId = ?", data, (err, res) => {
-    err ? result(err, null) : result(null, res);
-  });
-};
+  static delete(data, result) {
+    queryDB("DELETE FROM `likes` WHERE postId = ? AND userId = ?", data, result);
+  }
+}
 
 module.exports = Like;
