@@ -29,14 +29,6 @@ Like.getOneByPostId = (data, result) => {
   });
 };
 
-// function sqlQueryData(query, data, result) {
-//   return db.query(query, data, (err, res) => {
-//     (err) ? result(err, null) : result(null, res)
-//   });
-// };
-
-// Like.getByPostIdAndUserId = () => sqlQueryData("SELECT userId FROM `likes` WHERE postId = ? AND userId = ?", data, result);
-
 Like.getByPostIdAndUserId = (data, result) => {
   db.query("SELECT userId FROM `likes` WHERE postId = ? AND userId = ?", data, (err, res) => {
     err ? result(err, null) : result(null, res);
