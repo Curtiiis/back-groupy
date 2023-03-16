@@ -1,4 +1,4 @@
-const queryDB = require("../utils/functions");
+const { queryDB } = require("../utils/functions.js");
 
 class Report {
   constructor(post) {

@@ -1,4 +1,4 @@
-const queryDB = require("../utils/functions.js");
+const { queryDB } = require("../utils/functions.js");
 
 class User {
   constructor(user) {
@@ -42,7 +42,7 @@ class User {
   }
 
   static getUserById(userId, result) {
-    queryDB("SELECT id picture,pseudo,isAdmin FROM users WHERE id = ?", [userId], (err, res) => {
+    queryDB("SELECT id,picture,pseudo,isAdmin FROM users WHERE id = ?", [userId], (err, res) => {
       result(err, err || res.length === 0 ? false : res[0]);
     });
   }
@@ -65,7 +65,12 @@ class User {
 
   static getUsersStats(data, result) {
     queryDB(
-      "SELECT COUNT(id) AS users, SUM (CASE WHEN isActive = 1 THEN 1 ELSE 0 END) AS users_actives, SUM (CASE WHEN isActive = 0 THEN 1 ELSE 0 END) AS users_disabled, SUM (CASE WHEN isAdmin = 1 THEN 1 ELSE 0 END) AS status_admins, SUM (CASE WHEN isAdmin = 0 THEN 1 ELSE 0 END) AS status_users FROM users",
+      `SELECT COUNT(id) AS users, 
+      SUM (CASE WHEN isActive = 1 THEN 1 ELSE 0 END) AS users_actives, 
+      SUM (CASE WHEN isActive = 0 THEN 1 ELSE 0 END) AS users_disabled, 
+      SUM (CASE WHEN isAdmin = 1 THEN 1 ELSE 0 END) AS status_admins, 
+      SUM (CASE WHEN isAdmin = 0 THEN 1 ELSE 0 END) AS status_users 
+      FROM users`,
       data,
       result
     );

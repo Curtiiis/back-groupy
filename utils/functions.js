@@ -6,4 +6,20 @@ function queryDB(queryString, data, result) {
   });
 }
 
-module.exports = queryDB;
+const promisify = (func, ...args) =>
+  new Promise((resolve, reject) =>
+    func(...args, (err, data) => (err ? reject(err) : resolve(data)))
+  );
+
+const getFollowedStatus = (dataFollows, itemUserId, authUserId) => {
+  return dataFollows
+    .filter((x) => x.followId == itemUserId)
+    .map((y) => y.userId)
+    .includes(authUserId);
+};
+
+const generateLink = (pseudo) => {
+  return pseudo.toLowerCase().replace(" ", "-");
+};
+
+module.exports = { queryDB, promisify, getFollowedStatus, generateLink };

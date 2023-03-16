@@ -1,4 +1,4 @@
-const queryDB = require("../utils/functions.js");
+const { queryDB } = require("../utils/functions.js");
 
 class Comment {
   constructor(post) {

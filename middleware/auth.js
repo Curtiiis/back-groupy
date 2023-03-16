@@ -8,12 +8,12 @@ module.exports = (req, res, next) => {
 
     req.auth = {
       userId: decodedToken.id_user,
-      // pseudo: decodedToken.pseudo,
       isActive: decodedToken.isActive,
       isAdmin: decodedToken.isAdmin,
     };
 
-    if (req.body.userId && req.body.userId != decodedToken.id_user) {
+    // If someone else ask
+    if (req.body.userId && req.body.userId !== decodedToken.id_user) {
       throw "Unavailable User ID!";
     } else {
       next();
