@@ -85,40 +85,6 @@ exports.getOnePost = async (req, res) => {
   } catch (err) {
     throw err;
   }
-
-  // Post.getOneByPostId(values, (err, dataArray) => {
-  //   if (err) throw err;
-  //   Like.getOneByPostId(values, (err, dataLikes) => {
-  //     if (err) throw err;
-  //     Save.getOneByPostId(values, (err, dataSaves) => {
-  //       if (err) throw err;
-  //       Follow.getFollowsFromUser(values, (err, dataFollows) => {
-  //         if (err) throw err;
-  //         Comment.getByPostId(values, (err, dataComments) => {
-  //           if (err) throw err;
-
-  //           for (let item of dataArray) {
-  //             item.notMyself = dataArray[0].userId != userIdAuth;
-  //             item.likes = dataLikes.length;
-  //             item.liked = dataLikes.map((x) => x.userId).includes(userIdAuth);
-  //             item.saves = dataSaves.length;
-  //             item.saved = dataSaves.map((x) => x.userId).includes(userIdAuth);
-  //             item.follows = dataFollows;
-  //             item.followed = dataFollows.map((x) => x.userId).includes(userIdAuth);
-  //             item.comments = dataComments;
-  //             item.commentsCount = dataComments.length;
-  //             item.commentText = "";
-  //             for (let comment of dataComments) {
-  //               comment.updating = false;
-  //               comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
-  //             }
-  //           }
-  //           res.status(200).json(dataArray);
-  //         });
-  //       });
-  //     });
-  //   });
-  // });
 };
 
 exports.modifyPost = async (req, res, next) => {

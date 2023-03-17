@@ -1,59 +1,68 @@
-require('dotenv').config();
-const Comment = require('../models/comment.models');
+require("dotenv").config();
+const Comment = require("../models/comment.models");
+const { promisify } = require("../utils/functions.js");
 
 // CRUD COMMENTS
-exports.createComment = (req, res, next) => {
-  if (req.body.text == '' || `${req.body.text.length}` > 250) {
-    return res.status(400).json({ message: 'Incorrect text length !' })
+exports.createComment = async (req, res, next) => {
+  const userId = req.auth.userId;
+  const postId = Number(req.params.id);
+  const text = req.body.text;
+
+  if (text.trim() == "" || text.length > 250) {
+    return res.status(400).json({ message: "Incorrect text length !" });
   }
-  const comment = new Comment({
-    userId: req.auth.userId,
-    postId: Number(req.params.id),
-    text: req.body.text,
-  });
-  Comment.create(comment, (err, data) => {
-    if (err) { return res.status(400).json(err) }
-    Comment.getByPostId(Number(req.params.id), (err, response) => {
-      if (err) throw err;
-      for (let item of response) {
-        item.updating = false;
-      }
-      data.commentsArray = response
-      res.status(201).json(data);
-    })
-  })
+
+  const comment = new Comment({ userId, postId, text });
+
+  try {
+    const [data, response] = await Promise.all([
+      promisify(Comment.create, comment),
+      promisify(Comment.getByPostId, postId),
+    ]);
+    response.forEach((item) => (item.updating = false));
+    data.commentsArray = response;
+    res.status(201).json(data);
+  } catch (error) {
+    return res.status(500).json(error);
+  }
 };
 
-exports.modifyComment = (req, res, next) => {
-  Comment.getByIdAndUserId([req.params.id, req.auth.userId], (err, data) => {
-    if (err) {
-      return res.status(400).json({ message: 'Bad request !' });
+exports.modifyComment = async (req, res, next) => {
+  const commentId = req.params.id;
+  const userIdAuth = req.auth.userId;
+  const isAdmin = req.auth.isAdmin === 1;
+  const text = req.body.text;
+
+  if (text.trim() == "" || text.length > 250) {
+    return res.status(400).json({ message: "Incorrect text length !" });
+  }
+
+  try {
+    const data = await promisify(Comment.getByIdAndUserId, [commentId, userIdAuth]);
+    if (data == "" && !isAdmin) {
+      return res.status(401).json({ message: "Unauthorized request !" });
     }
-    if (data == '' && req.auth.isAdmin == 0) {
-      return res.status(401).json({ message: 'Unauthorized request !' })
-    }
-    Comment.modify([req.body.text, req.params.id], (err, data) => {
-      (err)
-        ? res.status(400).json({ message: 'Bad request !' })
-        : res.status(200).json(req.body.text)
-    })
-  })
+    await promisify(Comment.modify, [text, commentId]);
+    res.status(200).json(text);
+  } catch (error) {
+    return res.status(400).json({ message: "Bad request !" });
+  }
 };
 
-exports.deleteComment = (req, res, next) => {
-  Comment.getByIdAndUserId([req.params.id, req.auth.userId], (err, data) => {
-    if (err) {
-      return res.status(400).json({ message: 'Bad request !' });
-    }
-    if (data == '' && req.auth.isAdmin == 0) {
-      return res.status(401).json({ message: 'Unauthorized request !' })
-    }
+exports.deleteComment = async (req, res, next) => {
+  const commentId = req.params.id;
+  const userIdAuth = req.auth.userId;
+  const isAdmin = req.auth.isAdmin === 1;
+  const text = req.body.text;
 
-    Comment.delete([req.params.id], (err) => {
-      (err)
-        ? res.status(400).json({ message: 'Bad request !' })
-        : res.status(200).json({ message: 'Comment deleted !' })
-    })
-  })
+  try {
+    const data = await promisify(Comment.getByIdAndUserId, [commentId, userIdAuth]);
+    if (data == "" && !isAdmin) {
+      return res.status(401).json({ message: "Unauthorized request !" });
+    }
+    await promisify(Comment.delete, commentId);
+    res.status(200).json(text);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error !" });
+  }
 };
-

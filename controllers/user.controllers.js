@@ -136,19 +136,22 @@ exports.getfollowers = async (req, res, next) => {
 };
 
 exports.getSuggestions = async (req, res, next) => {
-  if (req.params.id !== req.auth.userId && req.auth.isAdmin === 0) {
+  const userIdAuth = Number(req.auth.userId);
+  const userId = Number(req.params.id);
+
+  if (userId !== userIdAuth) {
     return res.status(403).json({ message: "Forbidden request !" });
   }
 
   try {
     const [dataUsers, dataFollows] = await Promise.all([
-      promisify(User.getSuggestions, [req.auth.userId]),
+      promisify(User.getSuggestions, userIdAuth),
       promisify(Follow.getAllFollows),
     ]);
 
     for (let item of dataUsers) {
       let followsArray = dataFollows.filter((x) => x.followId == item.userId).map((y) => y.userId);
-      item.followed = followsArray.includes(Number(req.auth.userId));
+      item.followed = followsArray.includes(userIdAuth);
       item.link = item.pseudo.toLowerCase().replace(" ", "-");
     }
     res.status(200).json(dataUsers);

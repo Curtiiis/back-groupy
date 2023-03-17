@@ -2,61 +2,55 @@ require("dotenv").config();
 const User = require("../models/user.models");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { promisify } = require("../utils/functions.js");
 
-exports.signup = (req, res, next) => {
-  User.isUnique([req.body.pseudo, req.body.email], (err, response) => {
-    if (err) throw err;
-    if (response == false) {
-      return res.status(401).json({ message: "Non unique pseudo or email" });
+exports.signup = async (req, res, next) => {
+  const pseudo = req.body.pseudo;
+  const email = req.body.email;
+
+  try {
+    const response = await promisify(User.isUnique, [pseudo, email]);
+    const hash = await bcrypt.hash(req.body.password, 5);
+    const user = new User({ email, pseudo, password: hash });
+
+    try {
+      if (response) {
+        const data = await promisify(User.create, user);
+        return res.status(201).json({ data, message: "Created with success !" });
+      }
+    } catch (error) {
+      return res.status(401).json({ message: "Pseudo/email already taken !" });
     }
-    bcrypt
-      .hash(req.body.password, 5)
-      .then((hash) => {
-        const user = new User({
-          email: req.body.email,
-          pseudo: req.body.pseudo,
-          password: hash,
-        });
-        User.create(user, (err) => {
-          if (err) throw err;
-          res.status(201).json({ message: "Created with success" });
-        });
-      })
-      .catch((error) => res.status(500).json(error));
-  });
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred during the signup process", error });
+  }
 };
 
-exports.login = (req, res, next) => {
-  User.getUserByEmail(req.body.email, (err, userFound) => {
-    if (userFound == 0) {
+exports.login = async (req, res, next) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  try {
+    const userFound = await promisify(User.getUserByEmail, email);
+    const passwordEncoded = userFound === 0 ? "" : userFound.password;
+    const valid = await bcrypt.compare(password, passwordEncoded);
+
+    const userId = userFound.userId;
+    const isActive = userFound.isActive;
+    const isAdmin = userFound.isAdmin;
+
+    if (userFound === 0) {
       return res.status(401).json({ message: "Disabled account" });
     }
-    const passwordEncoded = userFound === null ? "" : userFound.password;
-    bcrypt
-      .compare(req.body.password, passwordEncoded)
-      .then((valid) => {
-        if (err) throw err;
-        if (!valid) {
-          return res.status(400).json({ message: "Unavailable pseudo or email" });
-        }
-        res.status(200).json({
-          isActive: userFound.isActive,
-          isAdmin: userFound.isAdmin,
-          userId: userFound.userId,
-          token: jwt.sign(
-            {
-              id_user: userFound.userId,
-              isActive: userFound.isActive,
-              isAdmin: userFound.isAdmin,
-            },
-            `${process.env.TOKEN_KEY}`,
-            { expiresIn: "24h" }
-          ),
-        });
-      })
-      .catch((error) => {
-        console.log("Error 500", error);
-        res.status(500).json({ message: "Erreur serveur" });
-      });
-  });
+    if (!valid) {
+      return res.status(400).json({ message: "Unavailable pseudo or email" });
+    }
+
+    const token = jwt.sign({ id_user: userId, isActive, isAdmin }, process.env.TOKEN_KEY, {
+      expiresIn: "24h",
+    });
+    return res.status(200).json({ isActive, isAdmin, userId, token });
+  } catch (error) {
+    return res.status(500).json({ error, message: "Erreur serveur" });
+  }
 };

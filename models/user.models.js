@@ -29,10 +29,10 @@ class User {
     );
   }
 
-  static getUserByEmail(email, result) {
+  static getUserByEmail(data, result) {
     queryDB(
       "SELECT id AS userId,password,email,isAdmin,isActive FROM `users` WHERE email = ?",
-      [email],
+      data,
       (err, res) => {
         if (err || res.length === 0) return result(err, null);
         if (res[0].isActive == 0) return result(null, res[0].isActive);
