@@ -1,7 +1,12 @@
 require("dotenv").config();
 const bcrypt = require("bcrypt");
 const fs = require("fs");
-const { promisify, getFollowedStatus, generateLink } = require("../utils/functions.js");
+const {
+  getFollowedStatus,
+  generateLink,
+  promisify,
+  getUserAssets,
+} = require("../utils/functions.js");
 const User = require("../models/user.models");
 const Post = require("../models/post.models");
 const Follow = require("../models/follow.models");
@@ -28,54 +33,54 @@ exports.getAllUsers = async (req, res, next) => {
 
 exports.getOneUser = async (req, res) => {
   const userIdAuth = req.auth.userId;
-  const values = [req.params.id];
+  const values = req.params.id;
 
   try {
     const dataArray = await promisify(Post.getAllFromUser, values);
 
-    if (!dataArray.length) {
-      const user = await promisify(User.getUserById, values);
-      return res.status(202).json(user);
+    if (dataArray == "") {
+      User.getUserById(values, (err, dataArray) => {
+        if (err) throw err;
+        return res.status(202).json(dataArray);
+      });
     }
 
     const [dataLikes, dataSaves, dataFollows, dataComments] = await Promise.all([
       promisify(Like.getFromUser, values),
       promisify(Save.getFromUser, values),
       promisify(Follow.getFollowsFromUser, values),
-      promisify(Comment.getAllComments),
+      promisify(Comment.getByUserId, userIdAuth),
     ]);
 
-    function checkUserData(item1, item2, data) {
-      item = data.map((y) => y.userId);
-      item1 = item.length;
-      item2 = item.includes(userIdAuth);
-    }
-
-    dataArray.forEach((item) => {
-      checkUserData(item.likes, item.liked, dataLikes);
-      checkUserData(item.saves, item.saved, dataSaves);
-      checkUserData(item.follows, item.followed, dataFollows);
-      item.link = generateLink(item.pseudo);
+    for (let item of dataArray) {
+      item.likes = dataLikes.map((y) => y.userId).length;
+      item.liked = dataLikes.map((y) => y.userId).includes(userIdAuth);
+      item.saves = dataSaves.map((y) => y.userId).length;
+      item.saved = dataSaves.map((y) => y.userId).includes(userIdAuth);
+      item.follows = dataFollows.map((y) => y.userId).length;
+      item.followed = dataFollows.map((y) => y.userId).includes(userIdAuth);
+      item.link = item.pseudo.toLowerCase().replace(" ", "-");
       item.notMyself = item.userId != userIdAuth;
       let commentsArray = dataComments.filter((x) => x.postId == item.postId);
       item.comments = commentsArray;
       item.commentsCount = commentsArray.length;
+      item.commentText = "";
 
-      commentsArray.forEach((comment) => {
+      for (let comment of commentsArray) {
         comment.updating = false;
         comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
-      });
-    });
-    res.json(dataArray);
-  } catch (err) {
-    throw err;
+      }
+    }
+    res.status(200).json(dataArray);
+  } catch (error) {
+    throw error;
   }
 };
 
 exports.searchUser = (req, res) => {
   User.getByPseudo([req.auth.userId, `${req.params.id}%`], (err, data) => {
     if (err) throw err;
-    data.forEach((i) => (i.link = i.pseudo.toLowerCase().replace(" ", "-")));
+    data.forEach((i) => (i.link = generateLink(i.pseudo)));
     res.status(200).json(data);
   });
 };

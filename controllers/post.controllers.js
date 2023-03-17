@@ -1,5 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
+const { generateLink, promisify, setUserAssets } = require("../utils/functions.js");
 const Post = require("../models/post.models");
 const User = require("../models/user.models");
 const Like = require("../models/like.models");
@@ -14,259 +15,253 @@ exports.createPost = (req, res, next) => {
     return res.status(400).json({ message: "Empty body !" });
   }
 
+  const post = new Post({
+    userId: req.auth.userId,
+    title: req.body.title,
+    text: req.body.text,
+  });
+
   if (req.file) {
-    const post = new Post({
-      userId: req.auth.userId,
-      title: req.body.title,
-      text: req.body.text,
-      media: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
-    });
-    Post.create(post, (err, data) => {
-      if (err) throw err;
-      return res.status(201).json({ message: "Post created !" });
-    });
-  } else {
-    const post = new Post({
-      userId: req.auth.userId,
-      title: req.body.title,
-      text: req.body.text,
-    });
-    Post.create(post, (err, data) => {
-      if (err) throw err;
-      return res.status(201).json({ message: "Post created !" });
-    });
+    post.media = `${req.protocol}://${req.get("host")}/images/${req.file.filename}`;
+  }
+
+  Post.create(post, (err, data) => {
+    if (err) throw err;
+    return res.status(201).json({ message: "Post created !" });
+  });
+};
+
+exports.getAllPosts = async (req, res, next) => {
+  const userIdAuth = req.auth.userId;
+  const values = Number([req.params.number]);
+
+  try {
+    const [dataArray, dataLikes, dataSaves, dataFollows, dataComments] = await Promise.all([
+      promisify(Post.getLastByFive, values),
+      promisify(Like.getAllLikes),
+      promisify(Save.getAllSaves),
+      promisify(Follow.getAllFollows),
+      promisify(Comment.getAllComments),
+    ]);
+
+    for (let item of dataArray) {
+      setUserAssets(item, userIdAuth, dataLikes, dataSaves, dataFollows, dataComments);
+    }
+    res.status(200).json(dataArray);
+  } catch (err) {
+    next(err);
   }
 };
 
-exports.getAllPosts = (req, res, next) => {
-  Post.getLastByFive(Number([req.params.number]), (err, dataArray) => {
-    const userIdAuth = req.auth.userId;
-    if (err) throw err;
-    Like.getAllLikes((err, dataLikes) => {
-      if (err) throw err;
-      Save.getAllSaves((err, dataSaves) => {
-        if (err) throw err;
-        Follow.getAllFollows((err, dataFollows) => {
-          if (err) throw err;
-          Comment.getAllComments((err, dataComments) => {
-            if (err) throw err;
-
-            for (let item of dataArray) {
-              item.notMyself = item.userId != userIdAuth;
-              item.link = item.pseudo.toLowerCase().replace(" ", "-");
-              item.updated = Number(item.createdAt) !== Number(item.updatedAt);
-
-              // LIKES
-              item.likes = dataLikes
-                .filter((x) => x.postId == item.postId)
-                .map((y) => y.userId).length;
-              item.liked = dataLikes
-                .filter((x) => x.postId == item.postId)
-                .map((y) => y.userId)
-                .includes(userIdAuth);
-
-              // SAVES
-              item.saves = dataSaves
-                .filter((x) => x.postId == item.postId)
-                .map((y) => y.userId).length;
-              item.saved = dataSaves
-                .filter((x) => x.postId == item.postId)
-                .map((y) => y.userId)
-                .includes(userIdAuth);
-
-              // FOLLOWS
-              item.follows = dataFollows
-                .filter((x) => x.followId == item.userId)
-                .map((y) => y.userId);
-              item.followed = dataFollows
-                .filter((x) => x.followId == item.userId)
-                .map((y) => y.userId)
-                .includes(userIdAuth);
-
-              let commentsArray = dataComments.filter((x) => x.postId == item.postId);
-              item.comments = commentsArray;
-              item.commentsCount = commentsArray.length;
-              item.commentText = "";
-              for (let comment of commentsArray) {
-                comment.updating = false;
-                comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
-              }
-            }
-            res.status(200).json(dataArray);
-          });
-        });
-      });
-    });
-  });
-};
-
-exports.getOnePost = (req, res) => {
+exports.getOnePost = async (req, res) => {
   const userIdAuth = req.auth.userId;
   let values = req.params.id;
 
-  Post.getOneByPostId(values, (err, dataArray) => {
-    if (err) throw err;
-    Like.getOneByPostId(values, (err, dataLikes) => {
-      if (err) throw err;
-      Save.getOneByPostId(values, (err, dataSaves) => {
-        if (err) throw err;
-        Follow.getFollowsFromUser(userIdAuth, (err, dataFollows) => {
-          if (err) throw err;
-          Comment.getByPostId(values, (err, dataComments) => {
-            if (err) throw err;
+  try {
+    const dataArray = await promisify(Post.getOneByPostId, values);
 
-            for (let item of dataArray) {
-              item.notMyself = dataArray[0].userId != userIdAuth;
-              item.likes = dataLikes.length;
-              item.liked = dataLikes.map((x) => x.userId).includes(userIdAuth);
-              item.saves = dataSaves.length;
-              item.saved = dataSaves.map((x) => x.userId).includes(userIdAuth);
-              item.follows = dataFollows;
-              item.followed = dataFollows.map((x) => x.userId).includes(userIdAuth);
-              item.comments = dataComments;
-              item.commentsCount = dataComments.length;
-              item.commentText = "";
-              for (let comment of dataComments) {
-                comment.updating = false;
-                comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
-              }
-            }
-            res.status(200).json(dataArray);
-          });
-        });
-      });
-    });
-  });
+    const [dataLikes, dataSaves, dataFollows, dataComments] = await Promise.all([
+      promisify(Like.getOneByPostId, values),
+      promisify(Save.getOneByPostId, values),
+      promisify(Follow.getFollowsFromUser, userIdAuth),
+      promisify(Comment.getByPostId, values),
+    ]);
+
+    dataArray[0].notMyself = dataArray[0].userId != userIdAuth;
+    dataArray[0].likes = dataLikes.length;
+    dataArray[0].liked = dataLikes.map((x) => x.userId).includes(userIdAuth);
+    dataArray[0].saves = dataSaves.length;
+    dataArray[0].saved = dataSaves.map((x) => x.userId).includes(userIdAuth);
+    dataArray[0].follows = dataFollows;
+    dataArray[0].followed = dataFollows.map((x) => x.userId).includes(userIdAuth);
+    dataArray[0].comments = dataComments;
+    dataArray[0].commentsCount = dataComments.length;
+    dataArray[0].commentText = "";
+    for (let comment of dataComments) {
+      comment.updating = false;
+      comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
+    }
+    res.status(200).json(dataArray);
+  } catch (err) {
+    throw err;
+  }
+
+  // Post.getOneByPostId(values, (err, dataArray) => {
+  //   if (err) throw err;
+  //   Like.getOneByPostId(values, (err, dataLikes) => {
+  //     if (err) throw err;
+  //     Save.getOneByPostId(values, (err, dataSaves) => {
+  //       if (err) throw err;
+  //       Follow.getFollowsFromUser(values, (err, dataFollows) => {
+  //         if (err) throw err;
+  //         Comment.getByPostId(values, (err, dataComments) => {
+  //           if (err) throw err;
+
+  //           for (let item of dataArray) {
+  //             item.notMyself = dataArray[0].userId != userIdAuth;
+  //             item.likes = dataLikes.length;
+  //             item.liked = dataLikes.map((x) => x.userId).includes(userIdAuth);
+  //             item.saves = dataSaves.length;
+  //             item.saved = dataSaves.map((x) => x.userId).includes(userIdAuth);
+  //             item.follows = dataFollows;
+  //             item.followed = dataFollows.map((x) => x.userId).includes(userIdAuth);
+  //             item.comments = dataComments;
+  //             item.commentsCount = dataComments.length;
+  //             item.commentText = "";
+  //             for (let comment of dataComments) {
+  //               comment.updating = false;
+  //               comment.updated = Number(comment.createdAt) !== Number(comment.updatedAt);
+  //             }
+  //           }
+  //           res.status(200).json(dataArray);
+  //         });
+  //       });
+  //     });
+  //   });
+  // });
 };
 
-exports.modifyPost = (req, res, next) => {
-  Post.getByIdAndUserId([req.params.id, req.auth.userId], (err, data) => {
-    if (err) {
-      return res.status(400).json({ message: "Bad request !" });
-    }
-    if (data == "" && req.auth.isAdmin == 0) {
+exports.modifyPost = async (req, res, next) => {
+  const postId = req.params.id;
+  const userIdAuth = req.auth.userId;
+  const isAdmin = req.auth.isAdmin === 1;
+  const title = req.body.title;
+  const text = req.body.text;
+
+  try {
+    const data = await promisify(Post.getByIdAndUserId, [postId, userIdAuth]);
+
+    if (data == "" && !isAdmin) {
       return res.status(401).json({ message: "Unauthorized request !" });
     }
-    Post.modify([req.body.title, req.body.text, req.params.id], (err, response) => {
-      if (err) throw err;
-      res.status(200).json(response);
-    });
-  });
+    const response = await promisify(Post.modify, [title, text, postId]);
+    res.status(200).json(response);
+  } catch (error) {
+    return res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
-exports.deletePost = (req, res, next) => {
-  Post.getByIdAndUserId([req.params.id, req.auth.userId], (err, data) => {
-    if (err) {
-      return res.status(400).json({ message: "Error in request !" });
-    }
-    if (data == "" && req.auth.isAdmin == 0) {
+exports.deletePost = async (req, res, next) => {
+  const postId = req.params.id;
+  const userIdAuth = req.auth.userId;
+  const isAdmin = req.auth.isAdmin === 1;
+
+  try {
+    const data = await promisify(Post.getByIdAndUserId, [postId, userIdAuth]);
+
+    if (data == "" && !isAdmin) {
       return res.status(401).json({ message: "Unauthorized request !" });
     }
     if (data[0].media != null) {
       const filename = data[0].media.split("/images/")[1];
       fs.unlinkSync(`images/${filename}`);
     }
-    Post.delete([req.params.id], (err, data) => {
-      if (err) throw err;
-      res.status(200).json({ message: "Post deleted !" });
-    });
-  });
+    await promisify(Post.delete, [postId]);
+    res.status(200).json({ message: "Post deleted !" });
+  } catch (error) {
+    return res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
-exports.getStatistics = (req, res, next) => {
-  if (req.auth.isAdmin != 1) {
-    return res.status(403).json({ message: "Unauthorized request !" });
+exports.getStatistics = async (req, res, next) => {
+  try {
+    if (req.auth.isAdmin !== 1) {
+      return res.status(403).json({ message: "Unauthorized request !" });
+    }
+
+    const [statsUsers, statsPosts, statsComments, statsLikes] = await Promise.all([
+      promisify(User.getUsersStats),
+      promisify(Post.getCount),
+      promisify(Comment.getCount),
+      promisify(Like.getCount),
+    ]);
+
+    const response = Object.assign(statsPosts[0], statsUsers[0], statsComments[0], statsLikes[0]);
+    res.status(200).json(response);
+  } catch (error) {
+    throw error;
   }
-  User.getUsersStats((err, statsUsers) => {
-    if (err) throw err;
-    Post.getCount((err, statsPosts) => {
-      if (err) throw err;
-      Comment.getCount((err, statsComments) => {
-        if (err) throw err;
-        Like.getCount((err, statsLikes) => {
-          if (err) throw err;
-          Object.assign(statsPosts[0], statsUsers[0], statsComments[0], statsLikes[0]);
-          res.status(200).json(statsPosts[0]);
-        });
-      });
-    });
-  });
 };
 
 // CRUD SAVES
-exports.getSaves = (req, res, next) => {
-  Save.getFromUser([req.auth.userId], (err, data) => {
-    err ? res.status(400).json({ message: "Bad request !" }) : res.status(200).json(data);
-  });
+exports.getSaves = async (req, res, next) => {
+  try {
+    const data = await promisify(Save.getFromUser, [req.auth.userId]);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
-exports.savePost = (req, res, next) => {
-  let values = [req.params.id, req.auth.userId];
-  const saveInfo = new Save({
-    userId: req.auth.userId,
-    postId: req.params.id,
-  });
+exports.savePost = async (req, res, next) => {
+  const postId = req.params.id;
+  const userId = req.auth.userId;
+  let values = [postId, userId];
+  const saveInfo = new Save({ userId, postId });
 
-  Save.getByPostIdAndUserId(values, (err, data) => {
-    if (err) throw err;
+  try {
+    const data = await promisify(Save.getByPostIdAndUserId, values);
+
     let hasBeenSaved = Object.keys(data).length > 0;
+
     if (hasBeenSaved) {
-      Save.delete(values, (err, data) => {
-        err
-          ? res.status(400).json({ message: "Bad request !" })
-          : res.status(200).json({ data, message: "Post unsaved !" });
-      });
+      const result = await promisify(Save.delete, values);
+      res.status(200).json({ result, message: "Post unsaved !" });
     } else {
-      Save.create(saveInfo, (err, data) => {
-        err
-          ? res.status(400).json({ message: "Bad request !" })
-          : res.status(201).json({ data, message: "Post saved !" });
-      });
+      const result = await promisify(Save.create, saveInfo);
+      res.status(201).json({ result, message: "Post saved !" });
     }
-  });
+  } catch (error) {
+    res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
 // CRUD REPORTS
-exports.getReports = (req, res, next) => {
+exports.getReports = async (req, res, next) => {
   if (req.auth.isAdmin != 1) {
     return res.status(403).json({ message: "Unauthorized request !" });
   }
-  Report.getAll((err, data) => {
-    err ? res.status(400).json({ message: "Bad request !" }) : res.status(200).json(data);
-  });
+
+  try {
+    const data = await promisify(Report.getAll);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
-exports.reportPost = (req, res, next) => {
-  const report = new Report({
-    postId: req.params.id,
-    userId: req.body.owner,
-  });
-  Report.getByPostIdAndUserId([req.params.id, req.body.owner], (err, data) => {
-    if (err) throw err;
+exports.reportPost = async (req, res, next) => {
+  const postId = req.params.id;
+  const userId = req.body.owner;
+  let values = [postId, userId];
+  const report = new Report({ postId, userId });
+
+  try {
+    const data = await promisify(Report.getByPostIdAndUserId, values);
+
     let hasBeenReported = Object.keys(data).length > 0;
-    if (hasBeenReported) {
-      return res.status(201).json({ message: "Post reported !" });
-    }
-    Report.create(report, (err, data) => {
-      if (err) throw err;
-      return res.status(201).json({ message: "Post reported !" });
-    });
-  });
+
+    const result = hasBeenReported ? null : await promisify(Report.create, report);
+    res.status(201).json({ result, message: "Post reported !" });
+  } catch (error) {
+    res.status(400).json({ error, message: "Bad request !" });
+  }
 };
 
-exports.deleteReport = (req, res, next) => {
-  if (req.auth.isAdmin != 1) {
-    return res.status(403).json({ message: "Unauthorized request !" });
+exports.deleteReport = async (req, res, next) => {
+  if (req.auth.isAdmin !== 1) {
+    return res.status(403).json({ message: "Forbidden request !" });
   }
-  Report.delete([req.params.id], (err, data) => {
-    err
-      ? res.status(400).json({ message: "Bad request !" })
-      : res.status(200).json({ message: "Report deleted !" });
-  });
+  try {
+    await promisify(Report.delete, [req.params.id]);
+    return res.status(200).json({ message: "Report deleted !" });
+  } catch (error) {
+    return res.status(400).json({ message: "Bad request !" });
+  }
 };
 
 //LIKES
-exports.likePost = (req, res, next) => {
+exports.likePost = async (req, res, next) => {
   const userId = req.auth.userId;
   const postId = req.params.id;
 
@@ -274,23 +269,19 @@ exports.likePost = (req, res, next) => {
 
   let values = [postId, userId];
 
-  Like.getByPostIdAndUserId(values, (err, data) => {
-    if (err) throw err;
+  try {
+    const data = await promisify(Like.getByPostIdAndUserId, values);
 
     let hasBeenLiked = Object.keys(data).length > 0;
 
     if (hasBeenLiked) {
-      Like.delete(values, (err, data) => {
-        err
-          ? res.status(400).json({ message: "Bad request !" })
-          : res.status(200).json({ data, message: "Post unliked !" });
-      });
+      const data = await promisify(Like.delete, values);
+      return res.status(200).json({ data, message: "Post unliked !" });
     } else {
-      Like.create(likeInfo, (err, data) => {
-        err
-          ? res.status(400).json({ message: "Bad request !" })
-          : res.status(201).json({ data, message: "Post liked !" });
-      });
+      const data = await promisify(Like.create, likeInfo);
+      return res.status(201).json({ data, message: "Post liked !" });
     }
-  });
+  } catch (error) {
+    return res.status(400).json({ message: "Bad request !" });
+  }
 };

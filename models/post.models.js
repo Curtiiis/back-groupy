@@ -29,7 +29,7 @@ class Post {
   }
 
   static getByIdAndUserId(data, result) {
-    queryDB("SELECT * FROM `posts` WHERE `posts`.`id` = ? AND `posts`.`userId` = ?", data, result);
+    queryDB("SELECT * FROM `posts` WHERE id = ? AND userId = ?", data, result);
   }
 
   static getCount(data, result) {
@@ -37,7 +37,7 @@ class Post {
   }
 
   static modify(data, result) {
-    queryDB("UPDATE `posts` SET title = ?, text = ? WHERE `posts`.`id` = ?", data, result);
+    queryDB("UPDATE `posts` SET title = ?, text = ? WHERE id = ?", data, result);
   }
 
   static delete(data, result) {

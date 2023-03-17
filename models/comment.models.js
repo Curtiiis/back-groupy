@@ -17,7 +17,15 @@ class Comment {
 
   static getByPostId(data, result) {
     queryDB(
-      "SELECT * FROM `comments_pseudo` WHERE postId = ? ORDER BY createdAt DESC",
+      "SELECT * FROM `comments_pseudo` WHERE `comments_pseudo`.`postId` = ? ORDER BY createdAt DESC",
+      data,
+      result
+    );
+  }
+
+  static getByUserId(data, result) {
+    queryDB(
+      "SELECT * FROM `comments_pseudo` WHERE userId = ? ORDER BY createdAt DESC",
       data,
       result
     );
