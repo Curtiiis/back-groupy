@@ -13,14 +13,11 @@ exports.signup = async (req, res, next) => {
     const hash = await bcrypt.hash(req.body.password, 5);
     const user = new User({ email, pseudo, password: hash });
 
-    try {
-      if (response) {
-        const data = await promisify(User.create, user);
-        return res.status(201).json({ data, message: "Created with success !" });
-      }
-    } catch (error) {
+    if (!response) {
       return res.status(401).json({ message: "Pseudo/email already taken !" });
     }
+    const data = await promisify(User.create, user);
+    return res.status(201).json({ data, message: "Created with success !" });
   } catch (error) {
     res.status(500).json({ message: "An error occurred during the signup process", error });
   }

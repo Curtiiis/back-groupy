@@ -13,7 +13,10 @@ class User {
 
   static isUnique(data, result) {
     queryDB(
-      "SELECT SUM (CASE WHEN pseudo = ? THEN 1 ELSE 0 END) AS pseudo, SUM (CASE WHEN email = ? THEN 1 ELSE 0 END) AS email FROM users",
+      `SELECT 
+      SUM (CASE WHEN pseudo = ? THEN 1 ELSE 0 END) AS pseudo, 
+      SUM (CASE WHEN email = ? THEN 1 ELSE 0 END) AS email 
+      FROM users`,
       data,
       (err, res) => {
         result(err, !(err || res[0].pseudo !== 0 || res[0].email !== 0));
